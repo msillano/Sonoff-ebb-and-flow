@@ -34,3 +34,5 @@ Compared to mechanical timers, which usually have a resolution of 15 minutes, an
 This timer can be integrated into any Home Automation project that uses the MQTT standard, it is simple to construct and it has a ridiculous cost.
 
 For the full story, see [orchis-sonoff-en01.pdf](orchis-sonoff-en01.pdf) (english version) or [orchis-sonoff-it01.pdf](orchis-sonoff-it01.pdf) (versione italiana).
+
+Apoligize for my poor english.  M. Sillano
