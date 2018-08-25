@@ -31,6 +31,6 @@ We can consider this project divided into two parts:
 ![timer](/images/2018-08-21.082142.shot.png)
 
 Compared to mechanical timers, which usually have a resolution of 15 minutes, and a 24-hour cycle, this timer has a resolution of one minute, thus allowing very short periods of flow, and programming from many times a day up to a once every 14 days.
-It can also be integrated into any Home Automation project that uses the MQTT standard, is simple to construct and has a ridiculous cost.
+This timer can be integrated into any Home Automation project that uses the MQTT standard, it is simple to construct and it has a ridiculous cost.
 
 For the full story, see [orchis-sonoff-en01.pdf](orchis-sonoff-en01.pdf) (english version) or [orchis-sonoff-it01.pdf](orchis-sonoff-it01.pdf) (versione italiana).
