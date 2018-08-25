@@ -1,0 +1,187 @@
+% orchis-sonoff-ebb-flow ver 01.02, GNU LGPL license, (C)2018 m.sillano
+% ---- This config can be updated, don't use ["] here
+% telnet: script http://192.168.178.23:85/www/sonoff/ef0102.eub
+config ntp_server  1.pool.ntp.org
+config ntp_timezone 2
+config @6 /msillanohome/ebbflow/1
+
+on init
+do
+setvar $tmp = (@8 * 1)
+if $tmp = 0 then
+% cool start
+% @1 min counter
+setvar @1 = 1
+% @2 pump off (0) / on (1)
+setvar @2 = 1
+% config timers:  never = 24x60 + 1 = 1441 min ebb
+setvar @3 = "{\"time\":\"07:00\",\"days\":0,\"flow\":2,\"ebb\":58}"
+setvar @4 = "{\"time\":\"20:00\",\"flow\":2,\"ebb\":298}"
+% @5  timer in use D/N:3/4
+setvar @5 = 3
+% @7 days counter
+setvar @7 = 0
+endif
+% hot start
+setvar @8 = ($tmp + 1)
+setvar $cmt =  @6 | "/command"
+setvar $set = @6 | "/set"
+setalarm 3 json_parse("time",@3)
+setalarm 4 json_parse("time",@4)
+settimer 1 3001
+subscribe local $cmt
+subscribe local $set
+% restore flow state
+if (@2 * @1) > 2 then
+gpio_out 12 1
+gpio_out 13 0
+endif
+
+on mqttconnect
+do
+subscribe remote $cmt
+subscribe remote $set
+
+on topic remote $set
+do
+println "on Remote Set " | $this_data
+publish local $set $this_data
+
+on topic remote $cmt
+do
+println "on Remote Command " | $this_data
+publish local $cmt $this_data
+
+on topic local $set
+do
+println "on Local Set " | $this_data
+setvar $tmp = json_parse("data",$this_data)
+if $tmp = "setD" then
+% set new timing (day)
+setvar @3 = json_parse("value",$this_data)
+setalarm 3 json_parse("time",@3)
+endif
+if $tmp = "setN" then
+% set new timing (night)
+setvar @4 = json_parse("value",$this_data)
+setalarm 4 json_parse("time",@4)
+endif
+if $tmp = "timezone" then
+system "set ntp_timezone " | json_parse("value",$this_data)
+endif
+
+% local commands
+on topic local $cmt
+do
+println "on Local Command " | $this_data
+if $this_data = "toggle" then
+if @2 = 0 then
+publish local $cmt "flow"
+else
+publish local $cmt "ebb"
+endif
+endif
+if $this_data = "day" then
+setvar @5 = 3
+setvar @7 = json_parse("days",@3)
+publish local $cmt "flow"
+endif
+if $this_data = "night" then
+if json_parse("days",@3) = 0 then
+setvar @5 = 4
+publish local $cmt "ebb"
+endif
+endif
+if $this_data = "ebb" then
+setvar @2 = 0
+if @5 = 3 then
+setvar @1 = json_parse("ebb",@3)
+else
+setvar @1 = json_parse("ebb",@4)
+endif
+if json_parse("days",@3) = 0 then
+settimer 1 5999
+endif
+gpio_out 12 0
+gpio_out 13 1
+publish local $cmt "status"
+endif
+if $this_data = "flow" then
+setvar @2 = 1
+if @5 = 3 then
+setvar @1 = json_parse("flow",@3)
+else
+setvar @1 = json_parse("flow",@4)
+endif
+settimer 1 59999
+gpio_out 12 1
+gpio_out 13 0
+publish local $cmt "status"
+endif
+if $this_data = "sendD" then
+setvar $tmp = @6 | "/status/timeD"
+publish local $tmp @3
+endif
+if $this_data = "sendN" then
+setvar $tmp = @6 | "/status/timeN"
+publish local $tmp @4
+endif
+if $this_data = "status" then
+setvar $tmp = @6 | "/status/ebbflow"
+if @2 = 0 then
+if json_parse("days",@3) = 0 then
+setvar $msg = " in ebb: for the next flow " | @1 | " min."
+else
+setvar $msg = " in ebb: for the next flow " | @7 | " day(s)."
+endif
+publish local $tmp  $timestamp | $msg
+println $timestamp | $msg
+else
+setvar $msg = " in flow: for the next ebb " | @1 | " min."
+publish local $tmp  $timestamp | $msg
+println $timestamp | $msg
+endif
+endif
+
+% start D timing (day)
+on alarm 3
+do
+setvar @5 = 3
+if json_parse("days",@3) = 0 then
+publish local $cmt "flow"
+else
+if @7 > 0 then
+setvar @7 = (@7 - 1)
+endif
+if 1 > @7 then
+setvar @7 = json_parse("days",@3)
+publish local $cmt "flow"
+endif
+endif
+
+% start N timing (night)
+on alarm 4
+do
+if json_parse("days",@3) = 0 then
+setvar @5 = 4
+publish local $cmt "ebb"
+endif
+
+% cycle counter 1 min
+on timer 1
+do
+setvar @1 = (@1 - 1)
+settimer 1 59999
+if 1 > @1 then
+publish local $cmt "toggle"
+else
+publish local $cmt "status"
+endif
+
+% sonoff local button
+on gpio_interrupt 0 pullup
+do
+println "New state GPIO 0: " | $this_gpio
+if $this_gpio = 0 then
+publish local $cmt "toggle"
+endif
