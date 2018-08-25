@@ -19,7 +19,8 @@ like the tides).
 
 
 The project criteria are:
-- Flexible project, easily modifiable and adaptable to different needs.- Availability of the parts (many references are for the Italian market, but from the photos and descriptions it is easy to find similar products: all the parts are very common and not critical)
+- Flexible project, easily modifiable and adaptable to different needs.
+- Availability of the parts (many references are for the Italian market, but from the photos and descriptions it is easy to find similar products: all the parts are very common and not critical)
 - Simplicity and reliability of DIY operations
 - Low cost
 
